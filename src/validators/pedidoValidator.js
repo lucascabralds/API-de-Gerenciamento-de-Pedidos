@@ -1,4 +1,4 @@
-const { TIPOS, PRIORIDADES } = require('../models/pedido');
+const { TIPOS, PRIORIDADES, STATUS } = require('../models/pedido');
 const { ErroValidacao } = require('../errors/erros');
 
 // Reúne todos os problemas do corpo de uma vez, para o cliente corrigir tudo em uma só tentativa.
@@ -26,4 +26,12 @@ function validarCriacao(dados) {
   }
 }
 
-module.exports = { validarCriacao };
+function validarStatus(dados) {
+  const { status } = dados ?? {};
+
+  if (!STATUS.includes(status)) {
+    throw new ErroValidacao([`status deve ser um dos valores: ${STATUS.join(', ')}.`]);
+  }
+}
+
+module.exports = { validarCriacao, validarStatus };

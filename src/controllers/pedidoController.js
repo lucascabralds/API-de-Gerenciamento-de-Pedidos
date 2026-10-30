@@ -13,6 +13,10 @@ function criarPedidoController(service) {
     buscarPorId(req, res) {
       res.status(200).json(service.buscarPorId(req.params.id));
     },
+
+    atualizarStatus(req, res) {
+      res.status(200).json(service.atualizarStatus(req.params.id, req.body));
+    },
   };
 }
 

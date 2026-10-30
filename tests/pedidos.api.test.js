@@ -196,6 +196,121 @@ describe('GET /pedidos/:id', () => {
   );
 });
 
+describe('PATCH /pedidos/:id/status', () => {
+  let pedido;
+
+  beforeEach(async () => {
+    const resposta = await request(app).post('/pedidos').send(pedidoValido);
+    pedido = resposta.body;
+  });
+
+  const alterarStatus = (status, id = pedido.id) =>
+    request(app).patch(`/pedidos/${id}/status`).send({ status });
+
+  test('responde 200 com o pedido atualizado', async () => {
+    const resposta = await alterarStatus('cancelado');
+
+    expect(resposta.status).toBe(200);
+    expect(resposta.body).toEqual({ ...pedido, status: 'cancelado' });
+  });
+
+  test('a alteração aparece nas consultas seguintes', async () => {
+    await alterarStatus('em_preparacao');
+
+    const consulta = await request(app).get(`/pedidos/${pedido.id}`);
+
+    expect(consulta.body.status).toBe('em_preparacao');
+  });
+
+  test('percorre o fluxo completo até a entrega', async () => {
+    for (const status of ['em_preparacao', 'enviado', 'entregue']) {
+      const resposta = await alterarStatus(status);
+      expect(resposta.status).toBe(200);
+      expect(resposta.body.status).toBe(status);
+    }
+  });
+
+  test('altera apenas o status, ignorando outros campos do corpo', async () => {
+    const resposta = await request(app)
+      .patch(`/pedidos/${pedido.id}/status`)
+      .send({ status: 'em_preparacao', valor: 1, cliente: 'Outra Pessoa', id: 50 });
+
+    expect(resposta.status).toBe(200);
+    expect(resposta.body).toEqual({ ...pedido, status: 'em_preparacao' });
+  });
+
+  test('responde 404 para id inexistente', async () => {
+    const resposta = await alterarStatus('cancelado', 999);
+
+    expect(resposta.status).toBe(404);
+    expect(resposta.body.erro).toBe('Pedido 999 não encontrado.');
+  });
+
+  test('responde 404 para id inexistente mesmo com status inválido', async () => {
+    const resposta = await alterarStatus('qualquer', 999);
+
+    expect(resposta.status).toBe(404);
+  });
+
+  test.each([
+    ['status não reconhecido', { status: 'pago' }],
+    ['status com maiúscula', { status: 'Cancelado' }],
+    ['status ausente', {}],
+    ['status nulo', { status: null }],
+    ['status numérico', { status: 1 }],
+    ['status em lista', { status: ['cancelado'] }],
+    ['nome de propriedade interna', { status: 'constructor' }],
+  ])('responde 400 para %s', async (_cenario, corpo) => {
+    const resposta = await request(app).patch(`/pedidos/${pedido.id}/status`).send(corpo);
+
+    expect(resposta.status).toBe(400);
+    expect(resposta.body.detalhes[0]).toContain('status deve ser um dos valores');
+  });
+
+  test('responde 400 para requisição sem corpo', async () => {
+    const resposta = await request(app).patch(`/pedidos/${pedido.id}/status`);
+
+    expect(resposta.status).toBe(400);
+  });
+
+  test('responde 400 para JSON malformado', async () => {
+    const resposta = await request(app)
+      .patch(`/pedidos/${pedido.id}/status`)
+      .set('Content-Type', 'application/json')
+      .send('{"status":');
+
+    expect(resposta.status).toBe(400);
+    expect(resposta.body.erro).toBe('O corpo da requisição não é um JSON válido.');
+  });
+
+  test('responde 400 para transição não permitida e explica o motivo', async () => {
+    const resposta = await alterarStatus('entregue');
+
+    expect(resposta.status).toBe(400);
+    expect(resposta.body.detalhes[0]).toBe(
+      'Transição de "recebido" para "entregue" não permitida. ' +
+        'Próximos status possíveis: em_preparacao, cancelado.'
+    );
+  });
+
+  test('uma alteração recusada mantém o status anterior', async () => {
+    await alterarStatus('entregue');
+
+    const consulta = await request(app).get(`/pedidos/${pedido.id}`);
+
+    expect(consulta.body.status).toBe('recebido');
+  });
+
+  test('pedido em status final não muda mais', async () => {
+    await alterarStatus('cancelado');
+
+    const resposta = await alterarStatus('recebido');
+
+    expect(resposta.status).toBe(400);
+    expect(resposta.body.detalhes[0]).toContain('Próximos status possíveis: nenhum.');
+  });
+});
+
 describe('rotas desconhecidas', () => {
   test('respondem 404 em JSON', async () => {
     const resposta = await request(app).get('/produtos');
