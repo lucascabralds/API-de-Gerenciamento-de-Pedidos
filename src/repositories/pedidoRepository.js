@@ -10,6 +10,15 @@ function criarPedidoRepository() {
       pedidos.push(pedido);
       return pedido;
     },
+
+    listar() {
+      return pedidos;
+    },
+
+    // Compara como texto para que "1abc" ou "1.0" não encontrem o pedido 1, como ocorreria com parseInt ou Number.
+    buscarPorId(id) {
+      return pedidos.find((pedido) => String(pedido.id) === String(id));
+    },
   };
 }
 

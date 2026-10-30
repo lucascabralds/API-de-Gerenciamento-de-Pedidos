@@ -135,6 +135,67 @@ describe('POST /pedidos', () => {
   });
 });
 
+describe('GET /pedidos', () => {
+  test('responde 200 com lista vazia quando não há pedidos', async () => {
+    const resposta = await request(app).get('/pedidos');
+
+    expect(resposta.status).toBe(200);
+    expect(resposta.body).toEqual([]);
+  });
+
+  test('responde 200 com os pedidos cadastrados', async () => {
+    await request(app).post('/pedidos').send(pedidoValido);
+    await request(app)
+      .post('/pedidos')
+      .send({ ...pedidoValido, cliente: 'Ana Souza', tipo: 'retirada' });
+
+    const resposta = await request(app).get('/pedidos');
+
+    expect(resposta.status).toBe(200);
+    expect(resposta.body).toHaveLength(2);
+    expect(resposta.body.map((pedido) => pedido.cliente)).toEqual(['Carlos Silva', 'Ana Souza']);
+  });
+
+  test('não inclui tentativas de cadastro inválidas', async () => {
+    await request(app)
+      .post('/pedidos')
+      .send({ ...pedidoValido, valor: -1 });
+
+    const resposta = await request(app).get('/pedidos');
+
+    expect(resposta.body).toEqual([]);
+  });
+});
+
+describe('GET /pedidos/:id', () => {
+  test('responde 200 com o pedido existente', async () => {
+    const { body: criado } = await request(app).post('/pedidos').send(pedidoValido);
+
+    const resposta = await request(app).get(`/pedidos/${criado.id}`);
+
+    expect(resposta.status).toBe(200);
+    expect(resposta.body).toEqual(criado);
+  });
+
+  test('responde 404 em JSON para id inexistente', async () => {
+    const resposta = await request(app).get('/pedidos/999');
+
+    expect(resposta.status).toBe(404);
+    expect(resposta.body.erro).toBe('Pedido 999 não encontrado.');
+  });
+
+  test.each(['abc', '1abc', '1.0', '01', '-1', '0'])(
+    'responde 404 para o identificador "%s", mesmo com o pedido 1 cadastrado',
+    async (id) => {
+      await request(app).post('/pedidos').send(pedidoValido);
+
+      const resposta = await request(app).get(`/pedidos/${id}`);
+
+      expect(resposta.status).toBe(404);
+    }
+  );
+});
+
 describe('rotas desconhecidas', () => {
   test('respondem 404 em JSON', async () => {
     const resposta = await request(app).get('/produtos');
