@@ -225,13 +225,13 @@ São 90 testes automatizados com Jest e Supertest, com 100% de cobertura de `src
 - `tests/pedidos.api.test.js`: testa as rotas pelo HTTP, incluindo cenários de sucesso, dados inválidos, IDs inexistentes, JSON malformado e erro 500.
 - `tests/pedidoService.test.js`: testa as 25 combinações possíveis entre status de origem e de destino.
 
-Os testes manuais estão em `postman/api-pedidos.postman_collection.json`, e as capturas estão na pasta [`evidencias/`](evidencias/README.md).
+A coleção de testes do Postman está em `postman/api-pedidos.postman_collection.json`. A pasta [`evidencias/`](evidencias/README.md) traz as capturas de uma execução real dessa coleção com o Newman, a linha de comando do Postman.
 
 ## Uso de IA
 
 Sim, utilizei uma ferramenta de IA para programação neste projeto, a partir do enunciado da atividade.
 
-**Tarefas em que foi usada:** criação da estrutura do projeto, implementação das camadas, escrita dos testes automatizados, criação da coleção do Postman e redação deste README. As capturas da pasta `evidencias/` foram feitas por mim, executando a API no Postman.
+**Tarefas em que foi usada:** criação da estrutura do projeto, implementação das camadas, escrita dos testes automatizados, criação da coleção do Postman, redação deste README e geração das capturas da pasta `evidencias/`, feitas a partir de uma execução real da API com o Newman.
 
 **Sugestão aceita: comparar o identificador como texto.** O repositório compara `String(pedido.id) === String(id)`, em vez de converter a URL com `parseInt`. Com `parseInt`, `/pedidos/1abc` encontraria o pedido 1, quando o enunciado pede 404 para identificadores inexistentes. O comportamento está coberto por testes.
 

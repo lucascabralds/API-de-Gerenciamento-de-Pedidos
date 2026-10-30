@@ -1,6 +1,6 @@
 # Evidências — Postman
 
-Capturas dos testes manuais feitos no Postman. Cada imagem mostra método, URL, corpo da requisição (quando há), resposta e código HTTP.
+Capturas de uma execução real da coleção do projeto com o Newman, a linha de comando do Postman, com a API rodando localmente. Cada imagem mostra método, URL, corpo da requisição (quando há), resposta e código HTTP.
 
 | Arquivo | Cenário | Requisição na coleção | HTTP esperado |
 | --- | --- | --- | --- |
@@ -13,5 +13,5 @@ Capturas dos testes manuais feitos no Postman. Cada imagem mostra método, URL, 
 ## Como reproduzir
 
 1. Inicie a API com o servidor zerado: `npm start`.
-2. No Postman, importe `postman/api-pedidos.postman_collection.json`.
-3. Envie as requisições na ordem da tabela. A 05 altera o pedido 1, criado pela 01. Para repetir a sequência, reinicie o servidor, pois os pedidos ficam em memória.
+2. Em outro terminal, rode `npx newman run postman/api-pedidos.postman_collection.json`. Se preferir o Postman, importe esse arquivo e envie as requisições na ordem da tabela.
+3. A 05 altera o pedido 1, criado pela 01. Para repetir a sequência, reinicie o servidor, pois os pedidos ficam em memória.
