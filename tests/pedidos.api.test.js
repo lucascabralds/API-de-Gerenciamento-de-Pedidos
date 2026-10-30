@@ -318,4 +318,74 @@ describe('rotas desconhecidas', () => {
     expect(resposta.status).toBe(404);
     expect(resposta.body.erro).toContain('/produtos');
   });
+
+  test('método não suportado em rota existente responde 404 em JSON', async () => {
+    const resposta = await request(app).delete('/pedidos/1');
+
+    expect(resposta.status).toBe(404);
+    expect(resposta.body.erro).toContain('DELETE');
+  });
+});
+
+describe('erros de requisição detectados pelo Express', () => {
+  test('corpo acima do limite responde 413 em JSON', async () => {
+    const resposta = await request(app)
+      .post('/pedidos')
+      .send({ ...pedidoValido, cliente: 'a'.repeat(200 * 1024) });
+
+    expect(resposta.status).toBe(413);
+    expect(resposta.body.erro).toBeDefined();
+  });
+
+  test('identificador com codificação inválida na URL responde 400 em JSON', async () => {
+    const resposta = await request(app).get('/pedidos/%E0%A4%A');
+
+    expect(resposta.status).toBe(400);
+    expect(resposta.body.erro).toBeDefined();
+  });
+});
+
+describe('erros inesperados', () => {
+  const falha = new Error('conexão perdida com o armazenamento');
+  const repositoryComFalha = {
+    salvar() {
+      throw falha;
+    },
+    listar() {
+      throw falha;
+    },
+    buscarPorId() {
+      throw falha;
+    },
+  };
+
+  let logDeErro;
+  let appComFalha;
+
+  beforeEach(() => {
+    logDeErro = jest.spyOn(console, 'error').mockImplementation(() => {});
+    appComFalha = criarApp({ repository: repositoryComFalha });
+  });
+
+  afterEach(() => {
+    logDeErro.mockRestore();
+  });
+
+  test.each([
+    ['POST /pedidos', (agente) => agente.post('/pedidos').send(pedidoValido)],
+    ['GET /pedidos', (agente) => agente.get('/pedidos')],
+    ['GET /pedidos/:id', (agente) => agente.get('/pedidos/1')],
+    ['PATCH /pedidos/:id/status', (agente) => agente.patch('/pedidos/1/status').send({ status: 'enviado' })],
+  ])('%s responde 500 sem expor o detalhe do erro', async (_rota, enviar) => {
+    const resposta = await enviar(request(appComFalha));
+
+    expect(resposta.status).toBe(500);
+    expect(resposta.body).toEqual({ erro: 'Erro interno do servidor.' });
+  });
+
+  test('registra o erro original no log do servidor', async () => {
+    await request(appComFalha).get('/pedidos');
+
+    expect(logDeErro).toHaveBeenCalledWith(falha);
+  });
 });
